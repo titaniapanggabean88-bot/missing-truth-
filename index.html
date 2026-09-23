@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISSING TRUTH - Game Horor Psikologis</title>
+    <meta name="description" content="Missing Truth - Game horor eksplorasi mencari kebenaran dengan suasana mencekam, teka-teki, dan sistem hadiah.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js Library CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Noise & Vignette Overlay -->
+    <div id="vignette-overlay" class="vignette"></div>
+    <div id="noise-overlay" class="noise"></div>
+    <div id="sanity-pulse" class="sanity-pulse"></div>
+
+    <!-- Main 3D Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- UI Overlay / HUD -->
+    <div id="hud-layer">
+        <!-- Top Bar Header -->
+        <header id="top-bar">
+            <div class="brand">
+                <h1 class="game-title">MISSING TRUTH</h1>
+                <span class="sub-title">Babak I: Rahasia Rumah Tua</span>
+            </div>
+            <div class="status-widgets">
+                <!-- Senter Status -->
+                <div class="status-card" id="flashlight-widget">
+                    <span class="icon">🔦</span>
+                    <div class="meter-bar">
+                        <div id="battery-fill" class="fill" style="width: 100%;"></div>
+                    </div>
+                    <span id="battery-text">100%</span>
+                </div>
+                <!-- Sanity Status -->
+                <div class="status-card" id="sanity-widget">
+                    <span class="icon">🧠</span>
+                    <div class="meter-bar sanity">
+                        <div id="sanity-fill" class="fill" style="width: 100%;"></div>
+                    </div>
+                    <span id="sanity-text">Tenang</span>
+                </div>
+                <!-- Stamina Status -->
+                <div class="status-card" id="stamina-widget">
+                    <span class="icon">⚡</span>
+                    <div class="meter-bar stamina">
+                        <div id="stamina-fill" class="fill" style="width: 100%;"></div>
+                    </div>
+                    <span id="stamina-text">STAMINA</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Crosshair -->
+        <div id="crosshair">
+            <div class="dot"></div>
+            <div class="interact-prompt" id="interact-prompt">
+                <span class="key-badge">E / KLIK</span>
+                <span class="action-text" id="action-text">Periksa Objek</span>
+            </div>
+        </div>
+
+        <!-- Left Sidebar: Active Mission Card -->
+        <div id="mission-card" class="mission-card">
+            <div class="card-header">
+                <span class="badge">MISI AKTIF</span>
+                <span id="mission-step-count" class="step-count">Misi 1 / 5</span>
+            </div>
+            <h3 id="mission-title">Nyalakan Harapan</h3>
+            <p id="mission-desc">Cari Korek Api tua di Ruang Tamu untuk menyalakan Perapian tua dan menemukan petunjuk awal.</p>
+            <div class="progress-container">
+                <div id="mission-progress-bar" class="progress-bar" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Inventory Quickbar -->
+        <div id="inventory-bar" class="inventory-bar">
+            <div class="inventory-title">INVENTARIS HADIAH & ALAT</div>
+            <div class="slots-container" id="inventory-slots">
+                <!-- Dynamic slots inserted via JS -->
+            </div>
+        </div>
+
+        <!-- Bottom Right Action Buttons -->
+        <div id="quick-controls">
+            <button id="btn-journal" class="btn-hud"><span class="icon">📜</span> Jurnal Kebenaran (<span id="journal-count">0</span>/5)</button>
+            <button id="btn-toggle-sound" class="btn-hud"><span class="icon">🔊</span> Audio: ON</button>
+            <button id="btn-help" class="btn-hud"><span class="icon">❓</span> Bantuan</button>
+        </div>
+    </div>
+
+    <!-- Start / Splash Screen Overlay -->
+    <div id="start-screen" class="overlay-screen active">
+        <div class="screen-content main-menu">
+            <h1 class="glow-title">MISSING TRUTH</h1>
+            <p class="tagline">"Kebenaran yang hilang tidak pernah mati... ia hanya menunggumu di dalam kegelapan."</p>
+            
+            <div class="warning-box">
+                <span class="warning-icon">⚠️</span>
+                <p><strong>Peringatan Game Horor (Revisi):</strong> Senter kini lebih terang, terdapat efek <em>jumpscare sesaat</em> (bayangan sosok misterius, petir luar ruangan, senter berkedip liar), pergerakan 360° Pointer Lock penuh, dan animasi langkah kaki realistis. Gunakan **Earphone / Headphone** untuk pengalaman maksimal.</p>
+            </div>
+
+            <div class="controls-guide">
+                <div class="guide-item"><span class="key">Klik Layar</span>: Kunci Mouse 360° Free Look</div>
+                <div class="guide-item"><span class="key">W A S D</span>: Bergerak (Head-Bobbing)</div>
+                <div class="guide-item"><span class="key">SHIFT</span>: Lari Kencang (Sprint)</div>
+                <div class="guide-item"><span class="key">E / Klik</span>: Interaksi Objek / Teka-Teki</div>
+                <div class="guide-item"><span class="key">F</span>: Nyala / Mati Senter</div>
+            </div>
+
+            <button id="btn-start-game" class="btn-primary-glow">MULAI MENCARI KEBENARAN</button>
+        </div>
+    </div>
+
+    <!-- REWARD MODAL (Muncul setiap berhasil menyelesaikan misi) -->
+    <div id="reward-modal" class="overlay-screen">
+        <div class="screen-content reward-card">
+            <div class="reward-header">
+                <div class="trophy-icon">🏆</div>
+                <div class="header-text">
+                    <span class="sub">MISI SELESAI!</span>
+                    <h2 id="reward-mission-name">Misi 1: Nyalakan Harapan</h2>
+                </div>
+            </div>
+
+            <div class="reward-body">
+                <p class="congrats-text">Selamat! Anda berhasil memecahkan teka-teki dan membuka bagian dari kebenaran.</p>
+
+                <div class="rewards-grid">
+                    <div class="reward-item-box">
+                        <div class="reward-icon" id="reward-tool-icon">🔦</div>
+                        <div class="reward-info">
+                            <span class="type">HADIAH ALAT</span>
+                            <h4 id="reward-tool-title">Senter Ultra-Lumen</h4>
+                            <p id="reward-tool-desc">Cahaya senter kini 2x lebih terang dan memiliki jangkauan lebih luas.</p>
+                        </div>
+                    </div>
+
+                    <div class="reward-item-box highlight">
+                        <div class="reward-icon">📜</div>
+                        <div class="reward-info">
+                            <span class="type">POTONGAN KEBENARAN</span>
+                            <h4 id="reward-truth-title">Dokumen Rahasia #1</h4>
+                            <p id="reward-truth-desc">Jurnal lama yang mencatat rahasia pembuka ruangan selanjutnya.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inspectable Truth Text Preview -->
+                <div class="truth-preview-box">
+                    <div class="truth-header">ISI JURNAL KEBENARAN:</div>
+                    <blockquote id="reward-truth-content">
+                        "Malam itu perapian dipadamkan sengaja... mereka menyembunyikan kunci ruang kerja di balik pajangan gramofon tua."
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="reward-footer">
+                <button id="btn-claim-reward" class="btn-primary-glow">AMBIL HADIAH & LANJUTKAN MISI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRUTH JOURNAL MODAL -->
+    <div id="journal-modal" class="overlay-screen">
+        <div class="screen-content journal-box">
+            <div class="modal-header">
+                <h2>📜 JURNAL KEBENARAN MISSING TRUTH</h2>
+                <button class="btn-close" id="btn-close-journal">&times;</button>
+            </div>
+            <div class="modal-body journal-layout">
+                <div class="journal-sidebar" id="journal-list">
+                    <!-- Dynamic Journal Items -->
+                </div>
+                <div class="journal-reader" id="journal-reader">
+                    <h3 id="journal-reader-title">Pilih Catatan Kebenaran</h3>
+                    <div id="journal-reader-content" class="reader-text">
+                        Pilihlah salah satu dokumen kebenaran yang telah Anda dapatkan sebagai hadiah dari misi untuk membaca kronologi rahasia rumah tua ini.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PUZZLE MODAL (Untuk Brankas / Keypad / Altar) -->
+    <div id="puzzle-modal" class="overlay-screen">
+        <div class="screen-content puzzle-box" id="puzzle-content-box">
+            <!-- Dynamic puzzle UI injected here -->
+        </div>
+    </div>
+
+    <!-- GAME ENDING MODAL -->
+    <div id="ending-modal" class="overlay-screen">
+        <div class="screen-content ending-card">
+            <div class="ending-header">
+                <h1 id="ending-title">KEBENARAN SEJATI TERUNGKAP</h1>
+                <p id="ending-subtitle">Anda Berhasil Melarikan Diri Dari Rumah Tua</p>
+            </div>
+            <div class="ending-body">
+                <div class="badge-display">
+                    <div class="badge-icon">🎖️</div>
+                    <div class="badge-title">Gelar: Master Finder of Missing Truth</div>
+                </div>
+                <p id="ending-story-text" class="ending-story">
+                    Dengan menyatukan 5 potongan jurnal kebenaran, Anda tidak hanya berhasil membuka pintu utama rumah tua, namun juga mengungkap rahasia yang terpendam selama 30 tahun...
+                </p>
+                <div class="stats-recap">
+                    <div class="stat-item"><span class="label">Misi Selesai:</span> <span class="val">5 / 5</span></div>
+                    <div class="stat-item"><span class="label">Hadiah Dikumpulkan:</span> <span class="val">100%</span></div>
+                    <div class="stat-item"><span class="label">Status Sanity:</span> <span id="final-sanity-val" class="val">Stabil</span></div>
+                </div>
+            </div>
+            <div class="ending-footer">
+                <button id="btn-restart-game" class="btn-primary-glow">MAIN LAGI (NEW GAME+)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Game Scripts -->
+    <script src="js/audio.js"></script>
+    <script src="js/gameplay.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
